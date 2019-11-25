@@ -34,7 +34,7 @@ text = [x.upper() for x in args['text']]
 bad_chars = set(x for x in ''.join(text) if x not in symbols)
 if bad_chars:
     # ...and I wrote the regex anyway
-    raise RuntimeError('Invalid characters, [A-Z0-9 ]+ only: {}'.format(bad_chars))
+    raise RuntimeError('Invalid characters, [A-Z0-9# ]+ only: {}'.format(bad_chars))
 
 ring = svgutils.transform.fromfile('ring.svg')
 # ... bad news, svgutils applies rotation to the object instead of returning a rotated copy
