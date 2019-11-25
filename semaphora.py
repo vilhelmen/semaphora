@@ -25,13 +25,13 @@ parser = argparse.ArgumentParser(description='Generate semaphore images')
 # svgutils can't and svgmanip is both broken and requires Node to do so
 # parser.add_argument('--render', type=float, help='Render to PNG')
 
-parser.add_argument('text', type=str, help='Text to convert')
+parser.add_argument('text', type=str, help='Text to convert', nargs='+')
 
 args = vars(parser.parse_args())
 
-text = args['text'].upper()
+text = [x.upper() for x in args['text']]
 # I could regex but I could also not
-bad_chars = set(x for x in text if x not in symbols)
+bad_chars = set(x for x in ''.join(text) if x not in symbols)
 if bad_chars:
     # ...and I wrote the regex anyway
     raise RuntimeError('Invalid characters, [A-Z0-9 ]+ only: {}'.format(bad_chars))
@@ -45,25 +45,36 @@ if line.get_size() != ring.get_size():
 
 # Hope you aligned things right!
 # OMG THESE AREN'T NUMBERS AAAAA
+# ...hope you did pixels!
 center = [int(x[:-2])/2 for x in ring.get_size()]
+
+fig_size = ring.get_size()
 
 # Don't make me read from disk every single time I have to draw this please
 # I could try deepcopying or something but let's not assume how any of this library works
-# ...amazing. to_str returns bytes but fromstring
+# ...amazing. to_str returns bytes but fromstring wants a str
 line = line.to_str().decode()
+# UGH something is consuming the ring SVG when I added multi-text concat
+ring = ring.to_str().decode()
 
-# I think they need to be added all in one go or it'll append instead of compost? Idk.
-elements = [ring.getroot()]
+for chunk in text:
+    elements = [svgutils.transform.fromstring(ring).getroot()]
+    for letter in chunk:
+        positions = symbols[letter]
+        elem = svgutils.transform.fromstring(line).getroot()
+        elem.rotate(45*positions[0], *center)
+        elements.append(elem)
+        elem = svgutils.transform.fromstring(line).getroot()
+        elem.rotate(45*positions[1], *center)
+        elements.append(elem)
 
-for letter in text:
-    positions = symbols[letter]
-    elem = svgutils.transform.fromstring(line).getroot()
-    elem.rotate(45*positions[0], *center)
-    elements.append(elem)
-    elem = svgutils.transform.fromstring(line).getroot()
-    elem.rotate(45*positions[1], *center)
-    elements.append(elem)
+    figure = svgutils.transform.SVGFigure(*fig_size)
+    figure.append(elements)
+    figure.save(chunk + '.svg')
 
-figure = svgutils.transform.SVGFigure(*ring.get_size())
-figure.append(elements)
-figure.save(text + '.svg')
+if len(text) > 1:
+    figure = svgutils.compose.Figure(
+        int(fig_size[0][:-2])*len(text), int(fig_size[1][:-2]),
+        *[svgutils.compose.SVG(filename) for filename in [x+'.svg' for x in text]]
+    ).tile(len(text), 1).save(''.join(text) + '.svg')
+
