@@ -16,3 +16,5 @@ Create multiple symbols and concat:
 
 
 Template is easy-ish to edit, just pop the xml into draw.io and tweak. For best results, export all components as one SVG and separate components manually. Raises if ring and line svgs don't have the same size.
+
+Non-px sized SVGs will most likely get mangled because I mangle the dimension data. Concatenated SVGs seem to be sized funky, you may want to render them in your image editor of choice, YMMV.
